@@ -13,19 +13,20 @@
   "pluginOptions": {},
   "attributes": {
     "name": {
-      "type": "string"
+      "type": "string",
+      "required": true,
+      "unique": true
     },
     "slug": {
-      "type": "uid"
+      "type": "uid",
+      "targetField": "name",
+      "required": false
     },
-    "articles": {
+    "games": {
       "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::article.article",
-      "mappedBy": "category"
-    },
-    "description": {
-      "type": "text"
+      "relation": "manyToMany",
+      "target": "api::game.game",
+      "inversedBy": "categories"
     }
   }
 }
