@@ -16,7 +16,9 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
+    "@ckeditor/strapi-plugin-ckeditor": "^1.1.1",
     "@strapi/plugin-cloud": "5.18.0",
+    "@strapi/plugin-graphql": "^5.18.1",
     "@strapi/plugin-users-permissions": "5.18.0",
     "@strapi/strapi": "5.18.0",
     "fs-extra": "^10.0.0",
@@ -40,5 +42,6 @@
   "strapi": {
     "uuid": "6f854f30-3325-4eba-9ccc-5a4e370b3d73",
     "installId": "c77c44f89fdaf066280879657bb17f27269aff551206f58bba7265ea36c2d4aa"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
