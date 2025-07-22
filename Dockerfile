@@ -1,0 +1,9 @@
+FROM postgres:17
+
+ENV POSTGRES_DB=strapi
+ENV POSTGRES_USER=strapi
+ENV POSTGRES_PASSWORD=strapi123
+
+ENV PGDATA=/var/lib/postgresql/data
+
+EXPOSE 5432
