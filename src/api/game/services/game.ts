@@ -3,6 +3,7 @@
  */
 import axios from 'axios';
 import { JSDOM } from 'jsdom';
+import slugify from 'slugify';
 import { factories } from '@strapi/strapi';
 
 async function getGameInfo(slug: any) {
@@ -28,12 +29,43 @@ async function getGameInfo(slug: any) {
   }
 }
 
+async function getByName(name: string, entityService: any) {
+  const item = await strapi.service(entityService).find({
+    filters: { name },
+  });
+
+  return item.results.length > 0 ? item.results[0] : null;
+}
+
+async function create(name: string, entityService: any) {
+  const item = await getByName(name, entityService);
+
+  if (!item) {
+    await strapi.service(entityService).create({
+      data: {
+        name,
+        slug: slugify(name, { strict: true, lower: true }),
+      },
+    });
+  }
+}
+
 export default factories.createCoreService('api::game.game', () => ({
   async populate(params: any) {
     const gogApiUrl = `https://catalog.gog.com/v1/catalog?limit=48&order=desc%3Atrending`;
 
     const { data: { products } } = await axios.get(gogApiUrl);
     
-    console.log(await getGameInfo(products[2].slug));
+    products[0].developers.map(async (developer: any) => {
+      await create(developer, 'api::developer.developer');
+    });
+
+    products[0].publishers.map(async (publisher: any) => {
+      await create(publisher, 'api::publisher.publisher');
+    });
+
+    products[0].genres.map(async ({ name }: any) => {
+      await create(name, 'api::category.category');
+    });
   },
 }));
