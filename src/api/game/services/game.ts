@@ -200,9 +200,9 @@ export default factories.createCoreService(gameService, () => ({
 
       const { data: { products } } = await axios.get(gogApiUrl);
       
-      await createManyToManyData([ products[0], products[1], products[2] ]);
+      await createManyToManyData(products);
       
-      await createGames([ products[0], products[1], products[2] ]);
+      await createGames(products);
     } catch (e) {
       console.log('populate:', Exception(e));
     }
