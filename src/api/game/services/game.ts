@@ -72,6 +72,31 @@ async function createManyToManyData(products: any) {
   ]);
 }
 
+async function setImage({ image, game, field = 'cover' }) {
+  const { data } = await axios.get(image, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(data, 'binary');
+
+  const FormData = require('form-data');
+
+  const formData = new FormData();
+
+  formData.append('refId', game.id);
+  formData.append('ref', gameService);
+  formData.append('field', field);
+  formData.append('files', buffer, { filename: `${game.slug}.jpg` });
+
+  console.info(`Uploading ${field} image: ${game.slug}.jpg`);
+
+  await axios({
+    method: 'POST',
+    url: `http://localhost:1337/api/upload`,
+    data: formData,
+    headers: {
+      'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
+    },
+  });
+}
+
 async function createGames(products) {
   await Promise.all(
     products.map(async (product) => {
@@ -103,10 +128,24 @@ async function createGames(products) {
           }
         });
 
+        await setImage({ image: product.coverHorizontal, game });
+        await Promise.all(
+          product.screenshots.slice(0, 5).map((url) =>
+            setImage({
+              image: `${url.replace(
+                "{formatter}",
+                "product_card_v2_mobile_slider_639"
+              )}`,
+              game,
+              field: 'gallery',
+            })
+          )
+        );
+
         return game;
       }
-    })
-  )
+    }),
+  );
 }
 
 async function getByName(name: string, entityService: any) {
