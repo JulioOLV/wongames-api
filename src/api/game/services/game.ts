@@ -6,6 +6,12 @@ import { JSDOM } from 'jsdom';
 import slugify from 'slugify';
 import { factories } from '@strapi/strapi';
 
+const gameService = 'api::game.game';
+const developerService = 'api::developer.developer';
+const publisherService = 'api::publisher.publisher';
+const categoryService = 'api::category.category';
+const platformService = 'api::platform.platform';
+
 async function getGameInfo(slug: any) {
   const gogSlug = slug.replaceAll("-", "_").toLowerCase();
 
@@ -29,6 +35,80 @@ async function getGameInfo(slug: any) {
   }
 }
 
+async function createManyToManyData(products: any) {
+  const developersSet = new Set();
+  const publishersSet = new Set();
+  const categoriesSet = new Set();
+  const platformsSet = new Set();
+
+  products.forEach((product: any) => {
+    const { developers, publishers, genres, operatingSystems } = product;
+
+    genres?.forEach(({ name }: any) => {
+      categoriesSet.add(name);
+    });
+
+    operatingSystems?.forEach((item: any) => {
+      platformsSet.add(item);
+    });
+
+    developers?.forEach((item: any) => {
+      developersSet.add(item);
+    });
+
+    publishers?.forEach((item: any) => {
+      publishersSet.add(item);
+    });
+  });
+
+  const createCall = (set: any, entityName: any) =>
+    Array.from(set).map((name: any) => create(name, entityName));
+
+  await Promise.all([
+    ...createCall(developersSet, developerService),
+    ...createCall(publishersSet, publisherService),
+    ...createCall(categoriesSet, categoryService),
+    ...createCall(platformsSet, platformService),
+  ]);
+}
+
+async function createGames(products) {
+  await Promise.all(
+    products.map(async (product) => {
+      const item = await getByName(product.title, gameService);
+
+      if (!item) {
+        console.info(`Creating ${product.title}...`)
+
+        const game = await strapi.service(`${gameService}`).create({
+          data: {
+            name: product.title,
+            slug: product.slug,
+            price: product.price.finalMoney.amount,
+            release_date: new Date(product.releaseDate),
+            categories: await Promise.all(
+              product.genres.map(({ name }) => getByName(name, categoryService))
+            ),
+            platforms: await Promise.all(
+              product.operatingSystems.map((name) => getByName(name, platformService))
+            ),
+            developers: await Promise.all(
+              product.developers.map((name) => getByName(name, developerService))
+            ),
+            publisher: await Promise.all(
+              product.publishers.map((name) => getByName(name, publisherService))
+            ),
+            ...(await getGameInfo(product.slug)),
+            publishedAt: new Date(),
+          }
+        });
+
+        return game;
+      }
+    })
+  )
+}
+
 async function getByName(name: string, entityService: any) {
   const item = await strapi.service(entityService).find({
     filters: { name },
@@ -50,22 +130,14 @@ async function create(name: string, entityService: any) {
   }
 }
 
-export default factories.createCoreService('api::game.game', () => ({
+export default factories.createCoreService(gameService, () => ({
   async populate(params: any) {
     const gogApiUrl = `https://catalog.gog.com/v1/catalog?limit=48&order=desc%3Atrending`;
 
     const { data: { products } } = await axios.get(gogApiUrl);
     
-    products[0].developers.map(async (developer: any) => {
-      await create(developer, 'api::developer.developer');
-    });
-
-    products[0].publishers.map(async (publisher: any) => {
-      await create(publisher, 'api::publisher.publisher');
-    });
-
-    products[0].genres.map(async ({ name }: any) => {
-      await create(name, 'api::category.category');
-    });
+    await createManyToManyData([ products[0], products[1], products[2] ]);
+    
+    await createGames([ products[0], products[1], products[2] ]);
   },
 }));
